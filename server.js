@@ -66,8 +66,9 @@ app.use(bodyParser.json())
 
 app.get('/books', (req, res) => {
   const queryString = req.query.q;
-  const queryRegex = new RegExp(queryString,"i");
+  const queryRegex = new RegExp(queryString, "i");
   Book.find({'title': queryRegex})
+    .sort({'num_pages': -1})
     .then((results) => {
       // Succesfull
       console.log('Found : ' + results);
@@ -79,7 +80,35 @@ app.get('/books', (req, res) => {
     });
 });
 
+app.get('/books/:isbn', (req, res) => {
+  const isbn = req.params.isbn;
+  Book.findOne({'isbn': isbn})
+    .then((results) => {
+      res.json(results);
+    }).catch((err) => {
+      res.json({message: 'Cannot find this book', err: err});
+    });
+});
 
+app.get('/books/__v/:__v', (req, res) => {
+  const __v = req.params.__v;
+  Book.find({'__v': __v})
+    .then((results) => {
+      res.json(results);
+    }).catch((err) => {
+      res.json({message: 'Cannot find this book', err: err});
+    });
+});
+
+app.get('/books/_id/:_id', (req, res) => {
+  const _id = req.params._id;
+  Book.findOne({'_id': _id})
+    .then((results) => {
+      res.json(results);
+    }).catch((err) => {
+      res.json({message: 'Cannot find this book', err: err});
+    });
+});
 
 // Start the server
 app.listen(port, () => {
