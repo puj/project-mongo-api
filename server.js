@@ -18,9 +18,6 @@ mongoose.Promise = Promise
 
 const Book = mongoose.model('Book', {
   bookID: {
-    type: String
-  },
-  bookID: {
     type: Number
   },
   title: {
@@ -33,6 +30,7 @@ const Book = mongoose.model('Book', {
     type: Number
   },
   isbn: {
+    unique: true,
     type: String
   },
   isbn13: {
@@ -52,9 +50,12 @@ const Book = mongoose.model('Book', {
   }
 });
 
-// booksData.forEach((book) => {
-//   new Book(book).save();
-// });
+const addBooksToDatabase = () => {
+  booksData.forEach((book) => {
+    new Book(book).save();
+  });
+};
+// addBooksToDatabase();
 
 const port = process.env.PORT || 8080
 const app = express()
@@ -63,12 +64,20 @@ const app = express()
 app.use(cors())
 app.use(bodyParser.json())
 
-Book.find({'title': /Harry/i})
-  .then((results) => {
-    console.log('Found : ' + results);
-  }).catch((err) => {
-    console.log('Error ' + err);
-  });
+app.get('/books', (req, res) => {
+  const queryString = req.query.q;
+  const queryRegex = new RegExp(queryString,"i");
+  Book.find({'title': queryRegex})
+    .then((results) => {
+      // Succesfull
+      console.log('Found : ' + results);
+      res.json(results);
+    }).catch((err) => {
+      // Error/Failure
+      console.log('Error ' + err);
+      res.json({message: 'Cannot find this book', err: err});
+    });
+});
 
 
 
