@@ -2,13 +2,10 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-dotenv.config();
-
 import booksData from './data/books.json';
 
 const mongoUrl =
-  process.env.MONGO_URL || 'mongodb://localhost/WK18MongoCodealong';
+  process.env.MONGO_URL || 'mongodb://localhost/WK18LiveCodealongPart1';
 mongoose.connect(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true });
 mongoose.Promise = Promise;
 
@@ -26,7 +23,6 @@ const Book = mongoose.model('Book', {
     type: Number,
   },
   isbn: {
-    unique: true,
     type: String,
   },
   isbn13: {
@@ -46,11 +42,13 @@ const Book = mongoose.model('Book', {
   },
 });
 
-console.log(`Reset database=${process.env.RESET_DATABASE}?`);
 if (process.env.RESET_DATABASE) {
   console.log('Resetting database...');
+
   const seedDatabase = async () => {
+    // Clear our database
     await Book.deleteMany();
+    // Save all of the books from books.json to the database
     await booksData.forEach((book) => new Book(book).save());
   };
   seedDatabase();
@@ -58,18 +56,17 @@ if (process.env.RESET_DATABASE) {
 
 const port = process.env.PORT || 8080;
 const app = express();
-
-// Add middlewares to enable cors and json body parsing
 app.use(cors());
 app.use(bodyParser.json());
 
 app.get('/books', async (req, res) => {
   const books = await Book.find();
+  console.log(`Found ${books.length} books..`);
   res.json(books);
 });
 
 app.get('/books/:isbn', async (req, res) => {
-  const isbn = req.params.isbn;
+  const { isbn } = req.params;
   const book = await Book.findOne({ isbn: isbn });
   if (book) {
     res.json(book);
@@ -78,7 +75,6 @@ app.get('/books/:isbn', async (req, res) => {
   }
 });
 
-// Start the server
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
