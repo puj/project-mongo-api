@@ -1,16 +1,18 @@
-import express from "express";
-import bodyParser from "body-parser";
-import cors from "cors";
-import mongoose from "mongoose";
+import express from 'express';
+import bodyParser from 'body-parser';
+import cors from 'cors';
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+dotenv.config();
 
-import booksData from "./data/books.json";
+import booksData from './data/books.json';
 
 const mongoUrl =
-  process.env.MONGO_URL || "mongodb://localhost/WK18MongoCodealong";
+  process.env.MONGO_URL || 'mongodb://localhost/WK18MongoCodealong';
 mongoose.connect(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true });
 mongoose.Promise = Promise;
 
-const Book = mongoose.model("Book", {
+const Book = mongoose.model('Book', {
   bookID: {
     type: Number,
   },
@@ -44,8 +46,9 @@ const Book = mongoose.model("Book", {
   },
 });
 
+console.log(`Reset database=${process.env.RESET_DATABASE}?`);
 if (process.env.RESET_DATABASE) {
-  console.log("Resetting database...");
+  console.log('Resetting database...');
   const seedDatabase = async () => {
     await Book.deleteMany();
     await booksData.forEach((book) => new Book(book).save());
@@ -60,12 +63,12 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-app.get("/books", async (req, res) => {
+app.get('/books', async (req, res) => {
   const books = await Book.find();
   res.json(books);
 });
 
-app.get("/books/:isbn", async (req, res) => {
+app.get('/books/:isbn', async (req, res) => {
   const isbn = req.params.isbn;
   const book = await Book.findOne({ isbn: isbn });
   if (book) {
