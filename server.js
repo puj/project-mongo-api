@@ -1,55 +1,82 @@
-import express from 'express';
-import bodyParser from 'body-parser';
-import cors from 'cors';
-import mongoose from 'mongoose';
-import booksData from './data/books.json';
+import express from "express";
+import bodyParser from "body-parser";
+import cors from "cors";
+import mongoose from "mongoose";
+import {
+  createDogData,
+  createOwnerData,
+  generateDogs,
+  generateOwners,
+  connectSomeDogsToOwners,
+} from "./examples/generateData.js";
+const Schema = mongoose.Schema;
 
 const mongoUrl =
-  process.env.MONGO_URL || 'mongodb://localhost/WK18LiveCodealongPart1';
+  process.env.MONGO_URL || "mongodb://localhost/WK18LiveCodealongPart1";
 mongoose.connect(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true });
 mongoose.Promise = Promise;
 
-const Book = mongoose.model('Book', {
-  bookID: {
-    type: Number,
-  },
-  title: {
+const Dog = mongoose.model("Dog", {
+  name: {
     type: String,
   },
-  authors: {
-    type: String,
-  },
-  average_rating: {
+  age: {
     type: Number,
   },
-  isbn: {
+  breed: {
     type: String,
   },
-  isbn13: {
+  owner: { type: Schema.Types.ObjectId, ref: "Owner" },
+});
+
+const Owner = mongoose.model("Owner", {
+  name: {
     type: String,
   },
-  language_code: {
+  age: {
+    type: Number,
+  },
+  occupation: {
     type: String,
-  },
-  num_pages: {
-    type: Number,
-  },
-  ratings_count: {
-    type: Number,
-  },
-  text_reviews_count: {
-    type: Number,
   },
 });
 
 if (process.env.RESET_DATABASE) {
-  console.log('Resetting database...');
+  console.log("Resetting database...");
 
   const seedDatabase = async () => {
     // Clear our database
-    await Book.deleteMany();
-    // Save all of the books from books.json to the database
-    await booksData.forEach((book) => new Book(book).save());
+    await Owner.deleteMany();
+    await Dog.deleteMany();
+
+    const generatedOwners = generateOwners(5);
+    generatedOwners.map(async (owner) => await new Owner(owner).save());
+
+    const generatedDogs = generateDogs(generatedOwners, 10);
+    generatedDogs.map(async (dog) => await new Dog(dog).save());
+
+    connectSomeDogsToOwners(generatedDogs, generatedOwners);
+    generatedDogs.map(async (dog) => await new Dog(dog).save());
+
+    const owner1 = await new Owner({
+      _id: new mongoose.Types.ObjectId(),
+      name: "Owner 1",
+      age: 18,
+      occupation: "Student",
+    }).save();
+
+    const dog1 = new Dog({
+      name: "Dog 1",
+      age: 2,
+      breed: "Retriever",
+      owner: owner1._id,
+    }).save();
+
+    const dog2 = new Dog({
+      name: "Dog 2",
+      age: 1,
+      breed: "Terrier",
+    }).save();
   };
   seedDatabase();
 }
@@ -59,20 +86,68 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-app.get('/books', async (req, res) => {
-  const books = await Book.find();
-  console.log(`Found ${books.length} books..`);
-  res.json(books);
-});
+// ----- Create a utility function -----
 
-app.get('/books/:isbn', async (req, res) => {
-  const { isbn } = req.params;
-  const book = await Book.findOne({ isbn: isbn });
-  if (book) {
-    res.json(book);
-  } else {
-    res.status(404).json({ error: `Could not find book with isbn=${isbn}` });
+// Typical front-end/backend text transform function
+//  INPUT: owned: string containing "true" or "false"
+//  OUTPUT: "owned", "unowned" or ""
+const getTextFromIsOwned = (owned) => {
+  if (owned == "true") {
+    return "owned";
+  } else if (owned == "false") {
+    return "unowned";
   }
+  return "";
+};
+//  A confusing line of code if getTextFromIsOwned did not exist
+//  console.log(
+//     `Found ${owned ? (owned == "true" ? "owned" : "unowned") : ""} ${
+//       dogs.length
+//     } dogs..`
+//   );
+// ------------------------------------
+
+app.get("/dogs", async (req, res) => {
+  const { owned } = req.query;
+
+  // ----- Create a Search Filter -----
+
+  // Initialize the search filter as a filter which captures all results
+  //   Used later: Dog.find(searchFilter) == Dog.find({})
+  //   Since Dog.find({}) finds all dogs
+  //   The Default value of searchFilter will return all dogs
+  let searchFilter = {};
+
+  if (owned === "false") {
+    // Here we modify the filter to look like
+    //    searchFilter == {owner === null}
+    //    Now Dog.find({ owner: { $eq: null } ) will be executed instead
+    //    Mongo will find dogs where the value of owner is null
+    searchFilter = { owner: { $eq: null } };
+  }
+
+  if (owned === "true") {
+    // Here we modify the filter to look like
+    //    searchFilter == {owner !== null}
+    //    Now Dog.find({ owner: { $ne: null } ) will be executed instead
+    //    Mongo will find dogs where the dog has an owner
+    searchFilter = { owner: { $ne: null } };
+  }
+  // ------------------------------------
+
+  // searchFilter should either:
+  //   1. The find returns all dogs
+  //   2. The find returns dogs without owners
+  const dogs = await Dog.find(searchFilter).populate("owner");
+
+  console.log(`Found ${getTextFromIsOwned(owned)} ${dogs.length} dogs..`);
+
+  res.json(dogs);
+});
+app.get("/owners", async (req, res) => {
+  const owners = await Owner.find();
+  console.log(`Found ${owners.length} owners..`);
+  res.json(owners);
 });
 
 app.listen(port, () => {
