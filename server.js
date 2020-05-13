@@ -1,22 +1,22 @@
-import express from "express";
-import bodyParser from "body-parser";
-import cors from "cors";
-import mongoose from "mongoose";
+import express from 'express';
+import bodyParser from 'body-parser';
+import cors from 'cors';
+import mongoose from 'mongoose';
 import {
   createDogData,
   createOwnerData,
   generateDogs,
   generateOwners,
   connectSomeDogsToOwners,
-} from "./examples/generateData.js";
+} from './examples/generateData.js';
 const Schema = mongoose.Schema;
 
 const mongoUrl =
-  process.env.MONGO_URL || "mongodb://localhost/WK18LiveCodealongPart1";
+  process.env.MONGO_URL || 'mongodb://localhost/W18DogOwnerExample';
 mongoose.connect(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true });
 mongoose.Promise = Promise;
 
-const Dog = mongoose.model("Dog", {
+const Dog = mongoose.model('Dog', {
   name: {
     type: String,
   },
@@ -26,10 +26,10 @@ const Dog = mongoose.model("Dog", {
   breed: {
     type: String,
   },
-  owner: { type: Schema.Types.ObjectId, ref: "Owner" },
+  owner: { type: Schema.Types.ObjectId, ref: 'Owner' },
 });
 
-const Owner = mongoose.model("Owner", {
+const Owner = mongoose.model('Owner', {
   name: {
     type: String,
   },
@@ -42,41 +42,20 @@ const Owner = mongoose.model("Owner", {
 });
 
 if (process.env.RESET_DATABASE) {
-  console.log("Resetting database...");
+  console.log('Resetting database...');
 
   const seedDatabase = async () => {
     // Clear our database
     await Owner.deleteMany();
     await Dog.deleteMany();
 
-    const generatedOwners = generateOwners(5);
-    generatedOwners.map(async (owner) => await new Owner(owner).save());
+    const generatedOwners = generateOwners(6);
+    console.log(`Generated ${generatedOwners.length} owners`);
+    generatedOwners.forEach(async (owner) => await new Owner(owner).save());
 
     const generatedDogs = generateDogs(generatedOwners, 10);
-    generatedDogs.map(async (dog) => await new Dog(dog).save());
-
-    connectSomeDogsToOwners(generatedDogs, generatedOwners);
-    generatedDogs.map(async (dog) => await new Dog(dog).save());
-
-    const owner1 = await new Owner({
-      _id: new mongoose.Types.ObjectId(),
-      name: "Owner 1",
-      age: 18,
-      occupation: "Student",
-    }).save();
-
-    const dog1 = new Dog({
-      name: "Dog 1",
-      age: 2,
-      breed: "Retriever",
-      owner: owner1._id,
-    }).save();
-
-    const dog2 = new Dog({
-      name: "Dog 2",
-      age: 1,
-      breed: "Terrier",
-    }).save();
+    console.log(`Generated ${generatedDogs.length} dogs`);
+    generatedDogs.forEach(async (dog) => await new Dog(dog).save());
   };
   seedDatabase();
 }
@@ -92,12 +71,12 @@ app.use(bodyParser.json());
 //  INPUT: owned: string containing "true" or "false"
 //  OUTPUT: "owned", "unowned" or ""
 const getTextFromIsOwned = (owned) => {
-  if (owned == "true") {
-    return "owned";
-  } else if (owned == "false") {
-    return "unowned";
+  if (owned == 'true') {
+    return 'owned';
+  } else if (owned == 'false') {
+    return 'unowned';
   }
-  return "";
+  return '';
 };
 //  A confusing line of code if getTextFromIsOwned did not exist
 //  console.log(
@@ -107,7 +86,7 @@ const getTextFromIsOwned = (owned) => {
 //   );
 // ------------------------------------
 
-app.get("/dogs", async (req, res) => {
+app.get('/dogs', async (req, res) => {
   const { owned } = req.query;
 
   // ----- Create a Search Filter -----
@@ -118,7 +97,7 @@ app.get("/dogs", async (req, res) => {
   //   The Default value of searchFilter will return all dogs
   let searchFilter = {};
 
-  if (owned === "false") {
+  if (owned === 'false') {
     // Here we modify the filter to look like
     //    searchFilter == {owner === null}
     //    Now Dog.find({ owner: { $eq: null } ) will be executed instead
@@ -126,7 +105,7 @@ app.get("/dogs", async (req, res) => {
     searchFilter = { owner: { $eq: null } };
   }
 
-  if (owned === "true") {
+  if (owned === 'true') {
     // Here we modify the filter to look like
     //    searchFilter == {owner !== null}
     //    Now Dog.find({ owner: { $ne: null } ) will be executed instead
@@ -138,13 +117,13 @@ app.get("/dogs", async (req, res) => {
   // searchFilter should either:
   //   1. The find returns all dogs
   //   2. The find returns dogs without owners
-  const dogs = await Dog.find(searchFilter).populate("owner");
+  const dogs = await Dog.find(searchFilter).populate('owner');
 
   console.log(`Found ${getTextFromIsOwned(owned)} ${dogs.length} dogs..`);
 
   res.json(dogs);
 });
-app.get("/owners", async (req, res) => {
+app.get('/owners', async (req, res) => {
   const owners = await Owner.find();
   console.log(`Found ${owners.length} owners..`);
   res.json(owners);

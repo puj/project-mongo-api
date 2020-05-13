@@ -1,23 +1,23 @@
-import mongoose from "mongoose";
-const firstNames = ["Jon", "Ian", "Ivan", "Gunnar", "Kim"];
-const surNames = [
-  "Aftername",
-  "Bäckfjäll",
-  "Mountainstream",
-  "Park",
-  "Raspjeksi",
+import mongoose from 'mongoose';
+const firstNames = ['Jon', 'Ian', 'Ivan', 'Gunnar', 'Kim'];
+const surnames = [
+  'Aftername',
+  'Bäckfjäll',
+  'Mountainstream',
+  'Park',
+  'Raspjeksi',
 ];
 
-const doggoNames = ["Doggo", "Ralph", "Fido", "Roffe", "Blix", "Nugget"];
+const doggoNames = ['Doggo', 'Ralph', 'Fido', 'Roffe', 'Blix', 'Nugget'];
 
 const createAge = () => {
   return parseInt(Math.random() * 15);
 };
 
 const createName = () => {
-  const lastName = surNames[parseInt(firstNames.length * Math.random())];
+  const surname = surnames[parseInt(surnames.length * Math.random())];
   const firstName = firstNames[parseInt(firstNames.length * Math.random())];
-  return `${firstName} ${lastName}`;
+  return `${firstName} ${surname}`;
 };
 
 const createDogName = () => {
@@ -26,7 +26,7 @@ const createDogName = () => {
 
 export const createOwnerData = () => {
   // Everyone is a student in this life
-  const occupation = "Student";
+  const occupation = 'Student';
   return {
     _id: new mongoose.Types.ObjectId(),
     name: createName(),
@@ -35,7 +35,7 @@ export const createOwnerData = () => {
 };
 
 export const createDogData = (owners) => {
-  const breed = "Terrier";
+  const breed = 'Terrier';
   return {
     name: createDogName(),
     age: createAge(),
